@@ -39,8 +39,8 @@ class AutoPullTask extends Base {
     public function getActionRequiredParameters()
     {
         return array(
-            'dest_column_id' => t('Column Source'),
-            'src_column_id' => t('Column Destination')
+            'src_column_id' => t('Column Source'),
+            'dest_column_id' => t('Column Destination')
         );
     }
 
@@ -60,12 +60,61 @@ class AutoPullTask extends Base {
         );
     }
 
-    private function columnCount($column_id, $project_id){
-      $columns = $this->columnModel->getAllWithTaskCount($project_id)
-      print_r($columns)
-      foreach ($columns as $key => $value) {
-        // code...
+    private function getColumn($column_id, $project_id){
+      $columns = $this->columnModel->getAllWithTaskCount($project_id);
+      for ($i = 0; $i < count($columns); $i++) {
+        if($columns[$i]["id"] == $column_id){
+          return $columns[$i];
+        }
       }
+    }
+
+    private function isColumnFull($column_id, $project_id){
+      $column = $this->getColumn($column_id, $project_id);
+      $title = $column["title"];
+      $this->logger->debug("check if ".$title." is full");
+      if($column["task_limit"] > 0){
+        if($column["nb_open_tasks"] >= $column["task_limit"]){
+          $this->logger->debug($title." is full nb_open_tasks : ".$column["nb_open_tasks"]." > task_limit : ".$column["task_limit"]);
+          return true;
+        }
+      }
+      $this->logger->debug($title." is not full nb_open_tasks : ".$column["nb_open_tasks"]." > task_limit : ".$column["task_limit"]);
+      return false;
+    }
+
+    private function isTaskAvailableInCol($column_id, $project_id){
+      $column = $this->getColumn($column_id, $project_id);
+      $title = $column["title"];
+      $this->logger->debug("column ".$title." have ".$column["nb_open_tasks"]." opened tasks");
+      return $column["nb_open_tasks"] > 0;
+    }
+
+    private function get_first_task_id_in_col($project_id, $column_id){
+      $result = $this->db->table(TaskModel::TABLE)
+          ->eq('project_id', $project_id)
+          ->eq('column_id', $column_id)
+          ->columns('MIN(position) AS pos')
+          ->findOne();
+
+      $this->logger->debug(print_r($result, true));
+
+      $result = $this->db->table(TaskModel::TABLE)
+          ->eq('project_id', $project_id)
+          ->eq('column_id', $column_id)
+          ->eq('position', $result['pos'])
+          ->columns('id')
+          ->findOne();
+      return $result["id"];
+    }
+
+    private function get_last_post($project_id, $column_id){
+      $result = $this->db->table(TaskModel::TABLE)
+          ->eq('project_id', $project_id)
+          ->eq('column_id', $column_id)
+          ->columns('MAX(position) AS pos')
+          ->findOne();
+      return $result["pos"]+1;
     }
 
     /**
@@ -77,11 +126,24 @@ class AutoPullTask extends Base {
    */
   public function doAction(array $data)
   {
-      $values = array(
-          'dest_column_id' => $this->getParam('dest_column_id'),
-          'src_column_id' => $this->getParam('src_column_id'),
-      );
-      return $this->taskModificationModel->update($values, false);
+
+      $project_id = $data['task']['project_id'];
+      $src_column = $this->getColumn($this->getParam('src_column_id'), $project_id);
+      $dest_column = $this->getColumn($this->getParam('dest_column_id'), $project_id);
+
+      while($this->hasRequiredCondition($data)){
+        $top_task_id = $this->get_first_task_id_in_col($project_id, $this->getParam('src_column_id'));
+        $this->logger->debug("move ".$top_task_id." from ".$src_column["title"]." to ".$dest_column["title"]." opened tasks");
+        $this->taskPositionModel->movePosition(
+            $data['task']['project_id'],
+            $top_task_id,
+            $this->getParam('dest_column_id'),
+            $this->get_last_post($project_id, $this->getParam('dest_column_id')),
+            0,
+            false
+        );
+      }
+      return true;
   }
 
   /**
@@ -94,8 +156,11 @@ class AutoPullTask extends Base {
   public function hasRequiredCondition(array $data)
   {
     //$columnModel
+    //dest < max
+
+    return !$this->isColumnFull($this->getParam('dest_column_id'), $data["project_id"])
+            && $this->isTaskAvailableInCol($this->getParam('src_column_id'), $data["project_id"]);
     //check "nb task dans la colonne dest" > "max"
-      return $data['task']['column_id'] == $this->getParam('column_id');
   }
 }
 

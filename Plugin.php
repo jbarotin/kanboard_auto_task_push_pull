@@ -4,13 +4,13 @@ namespace Kanboard\Plugin\auto_task_push_pull;
 
 use Kanboard\Core\Plugin\Base;
 use Kanboard\Core\Translator;
-use Kanboard\Plugin\auto_task_push_pull\Action\AutoPullTask;
+use Kanboard\Plugin\auto_task_push_pull\Action\AutoPushPullTask;
 
 class Plugin extends Base
 {
     public function initialize()
     {
-      $this->actionManager->register(new AutoPullTask($this->container));
+      $this->actionManager->register(new AutoPushPullTask($this->container));
     }
 
     public function onStartup()
@@ -25,7 +25,7 @@ class Plugin extends Base
 
     public function getPluginDescription()
     {
-        return t('This plugin aim to add an automatic action aim to push and pull tasks to an other cols if the limit is reached. In order to automatically apply the kanban workflow.');
+        return t('This plugin aim to add an automatic action that aim to push and pull tasks to an other cols if the limit is reached. In order to automatically apply the kanban workflow.');
     }
 
     public function getPluginAuthor()

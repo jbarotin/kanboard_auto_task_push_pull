@@ -28,4 +28,9 @@ Note: Plugin folder is case-sensitive.
 Documentation
 -------------
 
-TODO.
+This plugin aim to add an automatic action that aim to push and pull tasks to an
+other cols if the limit is reached. In order to automatically apply the kanban workflow.
+
+Rule of automatic push pull are :
+- if dest is full => push bottom task to src
+- if dest is not full and src is full => pull top task to dest  

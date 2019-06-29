@@ -182,13 +182,13 @@ class AutoPushPullTask extends Base {
       //push
       while($this->isDestToSrcConditons($data)){
         $this->debug("hasDestToSrcConditons");
-        $top_task_id = $this->get_first_task_id_in_col($project_id, $this->getParam('dest_column_id'));
+        $top_task_id = $this->get_last_task_id_in_col($project_id, $this->getParam('dest_column_id'));
         $this->debug("move ".$top_task_id." from '".$dest_column["title"]."' to '".$src_column["title"]."' opened tasks");
         $this->taskPositionModel->movePosition(
             $data['task']['project_id'],
             $top_task_id,
             $this->getParam('src_column_id'),
-            $this->get_last_post($project_id, $this->getParam('src_column_id')),
+            $this->get_first_pos($project_id, $this->getParam('src_column_id')),
             0,
             false
         );

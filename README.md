@@ -1,6 +1,9 @@
 Automatic Task Push/Pull
 ==============================
 
+** BETA ** this plugin is in beta mode, it evolve so use it carefully at you own risk ** BETA **
+
+
 This plugin aim to add an automatic action to push and pull tasks to an other
 cols if the limit is reached, this in order to automatically apply
 the kanban workflow.

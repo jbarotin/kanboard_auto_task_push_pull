@@ -76,6 +76,22 @@ class AutoPushPullTask extends Base {
       }
     }
 
+    private function isColumnHavePlace($column_id, $project_id){
+      $column = $this->getColumn($column_id, $project_id);
+      $title = $column["title"];
+      $this->debug("check if ".$title." have place");
+      if($column["task_limit"] > 0){
+        if($column["nb_open_tasks"] < $column["task_limit"]){
+          $this->debug($title." have place : ".$column["nb_open_tasks"]." < task_limit : ".$column["task_limit"]);
+          return true;
+        }else{
+          return false;
+        }
+      }else{
+        return true;
+      }
+    }
+
     private function isColumnFull($column_id, $project_id){
       $column = $this->getColumn($column_id, $project_id);
       $title = $column["title"];
@@ -165,33 +181,55 @@ class AutoPushPullTask extends Base {
       $dest_column = $this->getColumn($this->getParam('dest_column_id'), $project_id);
 
       //pull
+      $last_top_task_id = "";
       while($this->isSrcToDestConditons($data)){
+
         $this->debug("hasSrcToDestConditons");
         $top_task_id = $this->get_first_task_id_in_col($project_id, $this->getParam('src_column_id'));
-        $this->debug("move ".$top_task_id." from ".$src_column["title"]." to ".$dest_column["title"]." opened tasks");
-        $this->taskPositionModel->movePosition(
+        if($top_task_id == $last_top_task_id){
+          $this->debug("break: task still the same");
+          break;
+        }
+        $last_top_task_id = $top_task_id;
+
+        $this->debug("move ".$top_task_id." from '".$src_column["title"]."' to '".$dest_column["title"]."' opened tasks");
+        if($this->taskPositionModel->movePosition(
             $data['task']['project_id'],
             $top_task_id,
             $this->getParam('dest_column_id'),
             $this->get_last_post($project_id, $this->getParam('dest_column_id')),
             0,
             false
-        );
+        )==false){
+          $this->debug("break : can't move task");
+          break;
+        }
       }
 
       //push
-      while($this->isDestToSrcConditons($data)){
+      $last_top_task_id = "";
+      while($this->isDestToSrcConditions($data)){
         $this->debug("hasDestToSrcConditons");
         $top_task_id = $this->get_last_task_id_in_col($project_id, $this->getParam('dest_column_id'));
+        if($top_task_id == $last_top_task_id){
+          $this->debug("break: task still the same");
+          break;
+        }
+        $last_top_task_id = $top_task_id;
         $this->debug("move ".$top_task_id." from '".$dest_column["title"]."' to '".$src_column["title"]."' opened tasks");
-        $this->taskPositionModel->movePosition(
+        if($this->taskPositionModel->movePosition(
             $data['task']['project_id'],
             $top_task_id,
             $this->getParam('src_column_id'),
             $this->get_first_pos($project_id, $this->getParam('src_column_id')),
             0,
             false
-        );
+        )==false){
+          $this->debug("break");
+          break;
+        }else{
+
+        }
      }
 
 
@@ -203,14 +241,14 @@ class AutoPushPullTask extends Base {
   */
   private function isSrcToDestConditons(array $data)
   {
-      return !$this->isColumnFull($this->getParam('dest_column_id'), $data["project_id"])
-              && $this->isColumnFull($this->getParam('src_column_id'), $data["project_id"]);
+      return $this->isColumnHavePlace($this->getParam('dest_column_id'), $data["project_id"])
+              && $this->isTaskAvailableInCol($this->getParam('src_column_id'), $data["project_id"]);
   }
 
   /*
   SRC is not full and DST is full
   */
-  private function isDestToSrcConditons(array $data)
+  private function isDestToSrcConditions(array $data)
   {
       return $this->isColumnFull($this->getParam('dest_column_id'), $data["project_id"]);
   }
@@ -224,7 +262,7 @@ class AutoPushPullTask extends Base {
    */
   public function hasRequiredCondition(array $data)
   {
-    return $this->isSrcToDestConditons($data) || $this->isDestToSrcConditons($data);
+    return $this->isSrcToDestConditons($data) || $this->isDestToSrcConditions($data);
   }
 }
 

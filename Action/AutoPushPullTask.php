@@ -27,6 +27,7 @@ class AutoPushPullTask extends Base {
     {
         return array(
             TaskModel::EVENT_MOVE_COLUMN,
+            TaskModel::EVENT_CREATE
         );
     }
 
@@ -253,6 +254,20 @@ class AutoPushPullTask extends Base {
       return $this->isColumnFull($this->getParam('dest_column_id'), $data["project_id"]);
   }
 
+
+  public function isColumnLimited($column_id, $project_id){
+    $column = $this->getColumn($column_id, $project_id);
+    $title = $column["title"];
+
+    if($column["task_limit"] > 0){
+      $this->debug("check if ".$title." is limited => true");
+      return true;
+    }else {
+      $this->debug("check if ".$title." is limited => false");    
+      return false;
+    }
+  }
+
   /**
    * Check if the event data meet the action condition
    *
@@ -262,7 +277,13 @@ class AutoPushPullTask extends Base {
    */
   public function hasRequiredCondition(array $data)
   {
-    return $this->isSrcToDestConditons($data) || $this->isDestToSrcConditions($data);
+    if(($data["task"]["column_id"] == $this->getParam('dest_column_id')) || ($data["task"]["column_id"] == $this->getParam('src_column_id'))) {
+      $this->debug("data = ".print_r($data,true));
+      if($this->isColumnLimited($this->getParam('dest_column_id'), $data["project_id"])){
+        return $this->isSrcToDestConditons($data) || $this->isDestToSrcConditions($data);
+      }
+    }
+    return false;
   }
 }
 

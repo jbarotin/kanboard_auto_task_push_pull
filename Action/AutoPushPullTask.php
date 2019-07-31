@@ -200,7 +200,7 @@ class AutoPushPullTask extends Base {
             $this->getParam('dest_column_id'),
             $this->get_last_post($project_id, $this->getParam('dest_column_id')),
             0,
-            false
+            true
         )==false){
           $this->debug("break : can't move task");
           break;
@@ -224,7 +224,7 @@ class AutoPushPullTask extends Base {
             $this->getParam('src_column_id'),
             $this->get_first_pos($project_id, $this->getParam('src_column_id')),
             0,
-            false
+            true
         )==false){
           $this->debug("break");
           break;
@@ -243,7 +243,7 @@ class AutoPushPullTask extends Base {
   private function isSrcToDestConditons(array $data)
   {
       return $this->isColumnHavePlace($this->getParam('dest_column_id'), $data["project_id"])
-              && $this->isTaskAvailableInCol($this->getParam('src_column_id'), $data["project_id"]);
+              && $this->isColumnFull($this->getParam('src_column_id'), $data["project_id"]);
   }
 
   /*
@@ -263,7 +263,7 @@ class AutoPushPullTask extends Base {
       $this->debug("check if ".$title." is limited => true");
       return true;
     }else {
-      $this->debug("check if ".$title." is limited => false");    
+      $this->debug("check if ".$title." is limited => false");
       return false;
     }
   }

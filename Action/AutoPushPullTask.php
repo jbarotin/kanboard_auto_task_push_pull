@@ -6,6 +6,9 @@ use Kanboard\Model\TaskModel;
 
 
 class AutoPushPullTask extends Base {
+
+  private $debug = false;
+
   /**
    * Get automatic action description
    *
@@ -26,8 +29,8 @@ class AutoPushPullTask extends Base {
     public function getCompatibleEvents()
     {
         return array(
-            TaskModel::EVENT_MOVE_COLUMN,
-            TaskModel::EVENT_CREATE
+            TaskModel::EVENT_MOVE_COLUMN//,
+            //TaskModel::EVENT_CREATE
         );
     }
 
@@ -61,7 +64,7 @@ class AutoPushPullTask extends Base {
         );
     }
 
-    private $debug = false;
+
     private function debug($string){
       if($this->debug){
         $this->logger->debug($string);
@@ -121,7 +124,7 @@ class AutoPushPullTask extends Base {
           ->columns('MIN(position) AS pos')
           ->findOne();
 
-      $this->debug(print_r($result, true));
+      // $this->debug(print_r($result, true));
 
       return $this->get_task_id_at_pos_in_col($project_id, $column_id, $result["pos"]);
     }
@@ -143,7 +146,7 @@ class AutoPushPullTask extends Base {
           ->columns('MAX(position) AS pos')
           ->findOne();
 
-      $this->debug(print_r($result, true));
+      //$this->debug(print_r($result, true));
 
       return $this->get_task_id_at_pos_in_col($project_id, $column_id, $result["pos"]);
     }
@@ -192,13 +195,13 @@ class AutoPushPullTask extends Base {
           break;
         }
         $last_top_task_id = $top_task_id;
-
-        $this->debug("move ".$top_task_id." from '".$src_column["title"]."' to '".$dest_column["title"]."' opened tasks");
+        $pos = $this->get_last_post($project_id, $this->getParam('dest_column_id'));
+        $this->debug("move ".$top_task_id." from '".$src_column["title"]."' to '".$dest_column["title"]."' at pos : ".$pos."opened tasks");
         if($this->taskPositionModel->movePosition(
             $data['task']['project_id'],
             $top_task_id,
             $this->getParam('dest_column_id'),
-            $this->get_last_post($project_id, $this->getParam('dest_column_id')),
+            $pos,
             0,
             true
         )==false){
@@ -217,12 +220,13 @@ class AutoPushPullTask extends Base {
           break;
         }
         $last_top_task_id = $top_task_id;
-        $this->debug("move ".$top_task_id." from '".$dest_column["title"]."' to '".$src_column["title"]."' opened tasks");
+        $pos = $this->get_first_pos($project_id, $this->getParam('src_column_id'));
+        $this->debug("move ".$top_task_id." from '".$dest_column["title"]."' to '".$src_column["title"]."' at pos : '".$pos."' opened tasks");
         if($this->taskPositionModel->movePosition(
             $data['task']['project_id'],
             $top_task_id,
             $this->getParam('src_column_id'),
-            $this->get_first_pos($project_id, $this->getParam('src_column_id')),
+            $pos,
             0,
             true
         )==false){
@@ -278,7 +282,7 @@ class AutoPushPullTask extends Base {
   public function hasRequiredCondition(array $data)
   {
     if(($data["task"]["column_id"] == $this->getParam('dest_column_id')) || ($data["task"]["column_id"] == $this->getParam('src_column_id'))) {
-      $this->debug("data = ".print_r($data,true));
+      // $this->debug("data = ".print_r($data,true));
       if($this->isColumnLimited($this->getParam('dest_column_id'), $data["project_id"])){
         return $this->isSrcToDestConditons($data) || $this->isDestToSrcConditions($data);
       }

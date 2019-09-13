@@ -247,7 +247,7 @@ class AutoPushPullTask extends Base {
   private function isSrcToDestConditons(array $data)
   {
       return $this->isColumnHavePlace($this->getParam('dest_column_id'), $data["project_id"])
-              && $this->isColumnFull($this->getParam('src_column_id'), $data["project_id"]);
+            && $this->isTaskAvailableInCol($this->getParam('src_column_id'), $data["project_id"]);
   }
 
   /*
